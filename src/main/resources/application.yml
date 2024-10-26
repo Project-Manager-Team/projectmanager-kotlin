@@ -1,0 +1,25 @@
+logging:
+  level:
+    root: "INFO"
+    org.hibernate.SQL: "DEBUG"
+
+spring:
+  application:
+    name: "projectmanager"
+
+  datasource:
+    driver-class-name: "org.sqlite.JDBC"
+    url: "jdbc:sqlite:db.sqlite3"
+
+  jpa:
+    hibernate:
+      ddl-auto: "update"
+
+    open-in-view: false
+
+jwts:
+  public-key: "classpath:certs/public.pem"
+  private-key: "classpath:certs/private.pem"
+
+  access-token-lifetime: 1800     # 30 minutes
+  refresh-token-lifetime: 2592000 # 30 days
