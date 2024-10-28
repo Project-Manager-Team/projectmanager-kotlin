@@ -50,7 +50,20 @@ class Project(
     var subProjects: List<Project> = listOf()
 
 ) {
+
     enum class ProjectType {
         PROJECT, ROOT, TASK
+    }
+
+    fun hasCreatorIs(user: User): Boolean {
+        return this.creator.id == user.id
+    }
+
+    fun hasManagerIs(user: User?): Boolean {
+        return this.manager?.id == user?.id
+    }
+
+    fun hasCreatorOrManagerIs(user: User): Boolean {
+        return this.hasCreatorIs(user) || this.hasManagerIs(user)
     }
 }

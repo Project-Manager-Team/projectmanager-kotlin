@@ -50,7 +50,7 @@ class InvitationService
         val targetProject =
             projectService.retrieveProjectAndCheck(projectId, sender)
 
-        if (targetProject.manager != null) {
+        if (!targetProject.hasManagerIs(null)) {
             throw ErrorResponseException(HttpStatus.CONFLICT)
         }
 
@@ -82,11 +82,9 @@ class InvitationService
     fun changeInvitationStatus(id: Long, isAccept: Boolean) {
 
         val target = invitationRepository.getReferenceById(id)
-
         val user = userService.getUserByContext().orElseThrow()
-        val userIsReceiver = user.id == target.receiver.id
 
-        if (!userIsReceiver) {
+        if (!target.hasReceiverIs(user)) {
             throw ErrorResponseException(HttpStatus.FORBIDDEN)
         }
 
@@ -131,13 +129,9 @@ class InvitationService
     fun deleteInvitation(id: Long) {
 
         val target = invitationRepository.getReferenceById(id)
-
         val user = userService.getUserByContext().orElseThrow()
 
-        val userIsSender = user.id == target.sender.id
-        val userIsReceiver = user.id == target.receiver.id
-
-        if (!userIsSender && !userIsReceiver) {
+        if (!target.hasSenderOrReceiverIs(user)) {
             throw ErrorResponseException(HttpStatus.FORBIDDEN)
         }
 

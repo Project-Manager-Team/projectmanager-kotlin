@@ -4,7 +4,6 @@ import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
 import java.sql.Timestamp
 
-
 @Entity
 class Invitation(
 
@@ -35,5 +34,17 @@ class Invitation(
 ) {
     enum class InvitationStatus {
         PENDING, ACCEPTED, REJECTED
+    }
+
+    fun hasSenderIs(user: User): Boolean {
+        return this.sender.id == user.id
+    }
+
+    fun hasReceiverIs(user: User): Boolean {
+        return this.receiver.id == user.id
+    }
+
+    fun hasSenderOrReceiverIs(user: User): Boolean {
+        return this.hasSenderIs(user) || this.hasReceiverIs(user)
     }
 }

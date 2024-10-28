@@ -10,7 +10,6 @@ import com.group8.projectmanager.repositories.ProjectRepository
 import jakarta.persistence.EntityNotFoundException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
-import org.springframework.lang.Nullable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.ErrorResponseException
@@ -79,27 +78,6 @@ class ProjectService
         )
     }
 
-    private fun isCreatorOrManager(project: Project, user: User): Boolean {
-        return project.creator.id == user.id
-            || project.manager?.id == user.id
-    }
-
-    private fun ableToView(project: Project?, user: User): Boolean {
-
-        var ptr = project
-
-        while (ptr != null) {
-
-            if (isCreatorOrManager(ptr, user)) {
-                return true
-            }
-
-            ptr = ptr.parentProject
-        }
-
-        return false
-    }
-
     private fun invalidateCompletedStatus(parent: Project) {
 
         var ptr: Project? = parent
@@ -113,18 +91,29 @@ class ProjectService
         }
     }
 
-    private fun findHighestNode(
-        disjointSet: MutableMap<Long, Project>,
-        @Nullable proj: Project?, user: User
+    private fun findHighestNodeVisible(
+        disjointSet: MutableMap<Long, Project?>,
+        proj: Project?, user: User
     ): Project? {
 
-        if (proj == null || !isCreatorOrManager(proj, user)) {
-            return null
-        }
+        if (proj == null) return null
 
         return disjointSet.computeIfAbsent(proj.id, { _ ->
-            findHighestNode(disjointSet, proj.parentProject, user) ?: proj
+
+            val parent = proj.parentProject
+            val highestNode = findHighestNodeVisible(disjointSet, parent, user)
+
+            when {
+                highestNode != null -> highestNode
+                proj.hasCreatorOrManagerIs(user) -> proj
+                else -> null
+            }
         })
+    }
+
+    private fun ableToView(project: Project?, user: User): Boolean {
+        val disjointSet = HashMap<Long, Project?>()
+        return findHighestNodeVisible(disjointSet, project, user) != null
     }
 
     fun retrieveProjectAndCheck(id: Long, user: User): Project {
@@ -148,7 +137,7 @@ class ProjectService
 
     fun retrieveProjectAndCheck(id: Long): Project {
         val user = userService.getUserByContext().orElseThrow()
-        return this.retrieveProjectAndCheck(id, user)
+        return retrieveProjectAndCheck(id, user)
     }
 
     fun createProject(creator: User, parent: Project?, dto: ProjectCreateDto) {
@@ -197,7 +186,7 @@ class ProjectService
     @Transactional(readOnly = true)
     fun retrieveProjectDetail(id: Long): ProjectDetailDto {
         val target = retrieveProjectAndCheck(id)
-        return this.convertToDetailDto(target)
+        return convertToDetailDto(target)
     }
 
     @Transactional(readOnly = true)
@@ -205,12 +194,12 @@ class ProjectService
 
         val user = userService.getUserByContext().orElseThrow()
 
-        val disjointSet = HashMap<Long, Project>()
+        val disjointSet = HashMap<Long, Project?>()
         val results = TreeSet<Project>(Comparator.comparing { proj -> proj.id })
 
         repository
             .findVisibleProjects(user.id)
-            .map { proj -> findHighestNode(disjointSet, proj, user) }
+            .map { proj -> findHighestNodeVisible(disjointSet, proj, user) }
             .forEach { proj -> if (proj != null) results.add(proj) }
 
         return results.stream()
@@ -221,7 +210,7 @@ class ProjectService
 
                 subprojects
             }
-            .flatMap { obj -> obj.stream() }
+            .flatMap { list -> list.stream() }
             .map { project -> convertToDetailDto(project) }
             .toList()
     }
@@ -269,9 +258,7 @@ class ProjectService
         val user = userService.getUserByContext().orElseThrow()
         val target = retrieveProjectAndCheck(id, user)
 
-        val userIsManager = user.id == target.manager?.id
-
-        if (userIsManager) {
+        if (target.hasManagerIs(user)) {
             target.manager = null
             repository.save(target)
         } else {
