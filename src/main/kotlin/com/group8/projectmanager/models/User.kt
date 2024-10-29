@@ -19,12 +19,16 @@ class User(
 
 ) : UserDetails {
 
-    override fun getAuthorities(): MutableCollection<out GrantedAuthority> {
-        return ArrayList()
-    }
+    override fun equals(other: Any?) =
+        other is User && this.id == other.id
+
+    override fun hashCode() = id.hashCode()
 
     override fun getUsername() = username
     override fun getPassword() = password
+
+    override fun getAuthorities()
+        : MutableCollection<out GrantedAuthority> = ArrayList()
 
     fun setPassword(password: String) {
         this.password = password

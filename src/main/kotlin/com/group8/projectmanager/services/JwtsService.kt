@@ -56,7 +56,6 @@ class JwtsService
         return jwtEncoder.encode(parameter)
     }
 
-
     fun tokenObtainPair(dto: UserDto): TokenObtainDto {
 
         val authentication = authenticationProvider.authenticate(

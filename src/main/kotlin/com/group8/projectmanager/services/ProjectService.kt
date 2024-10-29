@@ -7,7 +7,6 @@ import com.group8.projectmanager.models.Project
 import com.group8.projectmanager.models.Project.ProjectType
 import com.group8.projectmanager.models.User
 import com.group8.projectmanager.repositories.ProjectRepository
-import jakarta.persistence.EntityNotFoundException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -105,7 +104,7 @@ class ProjectService
 
             when {
                 highestNode != null -> highestNode
-                proj.hasCreatorOrManagerIs(user) -> proj
+                user == proj.creator || user == proj.manager -> proj
                 else -> null
             }
         })
@@ -118,17 +117,9 @@ class ProjectService
 
     fun retrieveProjectAndCheck(id: Long, user: User): Project {
 
-        val target: Project
-        val isAbleToView: Boolean
+        val target = repository.getReferenceById(id)
 
-        try {
-            target = repository.getReferenceById(id)
-            isAbleToView = ableToView(target, user)
-        } catch (e: EntityNotFoundException) {
-            throw ErrorResponseException(HttpStatus.NOT_FOUND)
-        }
-
-        if (!isAbleToView) {
+        if (!ableToView(target, user)) {
             throw ErrorResponseException(HttpStatus.FORBIDDEN)
         }
 
@@ -258,7 +249,7 @@ class ProjectService
         val user = userService.getUserByContext().orElseThrow()
         val target = retrieveProjectAndCheck(id, user)
 
-        if (target.hasManagerIs(user)) {
+        if (user == target.manager) {
             target.manager = null
             repository.save(target)
         } else {

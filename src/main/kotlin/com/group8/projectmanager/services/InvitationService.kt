@@ -50,7 +50,7 @@ class InvitationService
         val targetProject =
             projectService.retrieveProjectAndCheck(projectId, sender)
 
-        if (!targetProject.hasManagerIs(null)) {
+        if (targetProject.manager != null) {
             throw ErrorResponseException(HttpStatus.CONFLICT)
         }
 
@@ -84,7 +84,7 @@ class InvitationService
         val target = invitationRepository.getReferenceById(id)
         val user = userService.getUserByContext().orElseThrow()
 
-        if (!target.hasReceiverIs(user)) {
+        if (user != target.receiver) {
             throw ErrorResponseException(HttpStatus.FORBIDDEN)
         }
 
@@ -131,7 +131,7 @@ class InvitationService
         val target = invitationRepository.getReferenceById(id)
         val user = userService.getUserByContext().orElseThrow()
 
-        if (!target.hasSenderOrReceiverIs(user)) {
+        if (user != target.sender && user != target.receiver) {
             throw ErrorResponseException(HttpStatus.FORBIDDEN)
         }
 
